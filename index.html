@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buscador de Escuelas Estatales y Privadas - Docentes Brown</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f3efdc;
+      color: #24496e;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background-color: #24496e;
+      color: white;
+      padding: 1rem;
+      border-bottom: 5px solid #da6863;
+    }
+    h1 { margin: 0; }
+    h2 { font-size: 1rem; margin-top: 0.5rem; color: #f3efdc; }
+    h2 a { color: #da6863; text-decoration: none; font-weight: bold; }
+    .filters { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin: 1rem; }
+    select { padding: 0.5rem; border-radius: 8px; border: 1px solid #3d8fb0; width: 90%; max-width: 400px; }
+    .results { display: flex; flex-direction: column; align-items: center; margin: 1rem; }
+    .card { background-color: white; border: 2px solid #3d8fb0; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 1rem; margin: 0.5rem; width: 90%; max-width: 600px; text-align: left; }
+    
+    /* Botones */
+    .btn { display: inline-block; background-color: #da6863; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 0.5rem; margin-right: 0.5rem; }
+    .btn:hover { opacity: 0.9; }
+    
+    /* Estilo específico para WhatsApp */
+    .btn.whatsapp { background-color: #25D366; } 
+    .btn.whatsapp:hover { background-color: #128C7E; }
+
+    footer { background-color: #4d3069; color: white; padding: 1rem; margin-top: 1rem; }
+    #contador { font-weight: bold; color: #f3efdc; }
+    
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Buscador de Escuelas</h1>
+    <h2>Optimizado por <a href="https://www.instagram.com/docentesbrown" target="_blank">@docentesbrown</a>, ahora también con escuelas privadas.</h2>
+    <h2>Si te sirvió este buscador invitanos un cafecito, tu aporte nos acompaña para seguir creciendo.</h2>
+  </header>
+
+  <section class="filters">
+    <select id="gestionFilter"><option value="">Seleccionar Gestión</option></select>
+    <select id="regionFilter"><option value="">Seleccionar Región</option></select>
+    <select id="distritoFilter"><option value="">Seleccionar Distrito</option></select>
+    <select id="nivelFilter"><option value="">Seleccionar Nivel</option></select>
+    <select id="modalidadFilter"><option value="">Seleccionar Modalidad</option></select>
+    
+    <select id="numeroFilter"><option value="">Seleccionar Nº de Escuela</option></select>
+    <select id="nombreFilter" class="hidden"><option value="">Seleccionar Nombre de Escuela</option></select>
+  </section>
+
+  <section class="results" id="results"></section>
+
+  <footer>
+    <p id="contador">Cargando visitas...</p>
+    <a class="btn" href="https://cafecito.app/docentesbrown" target="_blank">☕ Doná un Cafecito</a>
+  </footer>
+
+  <script>
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTxk9mBO2U4JKTaj4iLtYGzw4KWh7GNxfAqfOIj_Dgc1ciDLb7MKGDfnkvfmuFwOg/pub?gid=1973952134&single=true&output=csv';
+    let allData = []; 
+
+    function parseCSV(text) {
+      const rows = [];
+      const lines = text.trim().split(/\r?\n/).filter(line => line.length > 0); 
+
+      for (const line of lines) {
+        const rowData = [];
+        let currentField = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+
+          if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              currentField += '"';
+              i++; 
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            rowData.push(currentField);
+            currentField = '';
+          } else {
+            currentField += char;
+          }
+        }
+        rowData.push(currentField); 
+        
+        rows.push(rowData.map(field => field.trim().replace(/^"|"$/g, '')));
+      }
+      return rows;
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch(sheetUrl);
+        const csvText = await response.text();
+        
+        const rows = parseCSV(csvText); 
+        
+        if (rows.length === 0) {
+            document.getElementById('results').innerHTML = `<p style='color:orange'>El archivo de datos está vacío o es inaccesible.</p>`;
+            return;
+        }
+
+        const headers = rows[0].map(h => 
+          h.trim().toLowerCase().replace(/ /g, '_').replace(/[^a-z0-9_]/g, '') 
+        );
+
+        allData = rows.slice(1).map(row => {
+            const dataObject = {};
+            headers.forEach((h, i) => {
+                dataObject[h] = row[i] || '';
+            });
+            return dataObject;
+        });
+
+        populateFilters(allData);
+        setupFilterListeners(allData);
+      } catch (error) {
+        document.getElementById('results').innerHTML = `<p style='color:red'>Error cargando datos: ${error.message}. Verifica la URL del Google Sheet.</p>`;
+      }
+    }
+
+    function populateFilters(data) {
+      const gestiones = [...new Set(data.map(d => d.gestion).filter(Boolean))].sort();
+      fillSelect('gestionFilter', gestiones);
+    }
+
+    function fillSelect(id, options) {
+      const select = document.getElementById(id);
+      const defaultText = select.options[0] ? select.options[0].text : "Seleccionar";
+      select.innerHTML = ''; 
+      
+      const defaultOption = document.createElement('option');
+      defaultOption.value = "";
+      defaultOption.text = defaultText;
+      select.appendChild(defaultOption);
+      
+      options.forEach(o => {
+        const option = document.createElement('option');
+        option.value = o;
+        option.textContent = o;
+        select.appendChild(option);
+      });
+    }
+
+    function setupFilterListeners(data) {
+      const gestion = document.getElementById('gestionFilter');
+      const region = document.getElementById('regionFilter');
+      const distrito = document.getElementById('distritoFilter');
+      const nivel = document.getElementById('nivelFilter');
+      const modalidad = document.getElementById('modalidadFilter');
+      const numero = document.getElementById('numeroFilter');
+      const nombre = document.getElementById('nombreFilter');
+
+      function updateFilters(nextFiltersToUpdate) {
+        let filtered = data;
+        
+        const gestionVal = gestion.value;
+        const regionVal = region.value;
+        const distritoVal = distrito.value;
+        const nivelVal = nivel.value;
+        const modalidadVal = modalidad.value;
+        const numeroVal = numero.value;
+        const nombreVal = nombre.value;
+
+        const esPrivada = gestionVal && gestionVal.toLowerCase().includes('privada');
+        
+        if (esPrivada) {
+            numero.classList.add('hidden');
+            nombre.classList.remove('hidden');
+        } else {
+            numero.classList.remove('hidden');
+            nombre.classList.add('hidden');
+        }
+
+        if (gestionVal) filtered = filtered.filter(d => d.gestion === gestionVal);
+        if (regionVal) filtered = filtered.filter(d => d.region_educativa === regionVal);
+        if (distritoVal) filtered = filtered.filter(d => d.distrito === distritoVal);
+        if (nivelVal) filtered = filtered.filter(d => d.nivel === nivelVal);
+        if (modalidadVal) filtered = filtered.filter(d => d.modalidad === modalidadVal);
+        
+        const dataForLastSelect = filtered;
+
+        if (esPrivada) {
+            if (nombreVal) filtered = filtered.filter(d => d.nombre === nombreVal);
+        } else {
+            if (numeroVal) filtered = filtered.filter(d => d.nro_escuela === numeroVal);
+        }
+
+        if (nextFiltersToUpdate.includes('regionFilter')) {
+          fillSelect('regionFilter', [...new Set(filtered.map(d => d.region_educativa).filter(Boolean))].sort());
+        }
+        if (nextFiltersToUpdate.includes('distritoFilter')) {
+          fillSelect('distritoFilter', [...new Set(filtered.map(d => d.distrito).filter(Boolean))].sort());
+        }
+        if (nextFiltersToUpdate.includes('nivelFilter')) {
+          fillSelect('nivelFilter', [...new Set(filtered.map(d => d.nivel).filter(Boolean))].sort());
+        }
+        if (nextFiltersToUpdate.includes('modalidadFilter')) {
+          fillSelect('modalidadFilter', [...new Set(filtered.map(d => d.modalidad).filter(Boolean))].sort());
+        }
+        
+        if (nextFiltersToUpdate.includes('ultimoFiltro')) {
+            if (esPrivada) {
+                fillSelect('nombreFilter', [...new Set(dataForLastSelect.map(d => d.nombre).filter(Boolean))].sort());
+                if (nombreVal) nombre.value = nombreVal;
+                numero.value = ''; 
+            } else {
+                fillSelect('numeroFilter', [...new Set(dataForLastSelect.map(d => d.nro_escuela).filter(Boolean))].sort());
+                if (numeroVal) numero.value = numeroVal;
+                nombre.value = '';
+            }
+        }
+
+        const container = document.getElementById('results');
+        container.innerHTML = '';
+
+        if (modalidadVal || (esPrivada && nombreVal) || (!esPrivada && numeroVal)) {
+             displayResults(filtered);
+        }
+      }
+
+      gestion.addEventListener('change', () => {
+         region.value = ''; distrito.value = ''; nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
+         updateFilters(['regionFilter', 'distritoFilter', 'nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
+      });
+
+      region.addEventListener('change', () => {
+         distrito.value = ''; nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
+         updateFilters(['distritoFilter', 'nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
+      });
+
+      distrito.addEventListener('change', () => {
+         nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
+         updateFilters(['nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
+      });
+
+      nivel.addEventListener('change', () => {
+         modalidad.value = ''; numero.value = ''; nombre.value = '';
+         updateFilters(['modalidadFilter', 'ultimoFiltro']);
+      });
+
+      modalidad.addEventListener('change', () => {
+         numero.value = ''; nombre.value = '';
+         updateFilters(['ultimoFiltro']);
+      });
+
+      numero.addEventListener('change', () => {
+         updateFilters([]); 
+      });
+
+      nombre.addEventListener('change', () => {
+         updateFilters([]); 
+      });
+    }
+
+    function displayResults(filtered) {
+      const container = document.getElementById('results');
+      
+      if (filtered.length === 0) {
+        container.innerHTML = '<p>No se encontraron resultados para esta combinación.</p>';
+        return;
+      }
+
+      // TU NÚMERO DE WHATSAPP ACTUALIZADO
+      const tuNumeroDeWhatsapp = "5491153196358"; 
+
+      filtered.forEach(d => {
+        let query = '';
+
+        if (d.latitud && d.longitud && d.latitud !== '' && d.longitud !== '') {
+          query = `${d.latitud},${d.longitud}`;
+        } else {
+          query = `Escuela ${d.nro_escuela || ''} ${d.distrito || ''} ${d.calle || ''} ${d.nro_calle || ''}`;
+        }
+        
+        const loc = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+        
+        // Creamos el mensaje predeterminado para WhatsApp
+        const nombreEscuela = d.nombre || `Escuela ${d.nro_escuela}`;
+        const textoWhatsapp = `Hola Docentes Brown, vi la ${nombreEscuela} en el buscador y quería hacerles una consulta.`;
+        const linkWhatsapp = `https://wa.me/${tuNumeroDeWhatsapp}?text=${encodeURIComponent(textoWhatsapp)}`;
+        
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <strong>${d.nombre || 'Nombre no disponible'}</strong><br>
+          Gestión: ${d.gestion || ''}<br>
+          Región: ${d.region_educativa || ''}<br>
+          Distrito: ${d.distrito || ''}<br>
+          Clave: ${d.clave || ''}<br>
+          Nivel: ${d.nivel || ''}<br>
+          Modalidad: ${d.modalidad || ''}<br>
+          Nº Escuela: ${d.nro_escuela || ''}<br>
+          Calle: ${d.calle || ''} ${d.nro_calle || ''}<br>
+          Entre: ${d.calle_lateral_derecha || ''} y ${d.calle_lateral_izquierda || ''}<br>
+          Localidad: ${d.localidad || ''}<br>
+          Tel: (${d.caracteristica_telefonica || ''}) ${d.nro_telefono || ''}<br>
+          Email: ${d.email || ''}<br>
+          Tipo: ${d.tipo_organizacion || ''}<br>
+          Desfavorabilidad: ${d.desfavorabilidad || ''}<br>
+          <div style="margin-top:10px;">
+            <a class='btn' href='${loc}' target='_blank'>📍 Ubicación</a>
+            <a class='btn whatsapp' href='${linkWhatsapp}' target='_blank'>💬 WhatsApp a DB</a>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function loadCounter() {
+      const url = 'https://script.google.com/macros/s/AKfycbyKykDszLonwKbCOozT3cgbctSayhhWR2T3vDf5ncMX296E-p6EytJuvWWPr6MO6xhg/exec';
+
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        const visitas = await res.text();
+        document.getElementById('contador').innerText = `Visitantes totales: ${visitas}`;
+      } catch {
+        document.getElementById('contador').innerText = 'Visitantes totales: -';
+      }
+    }
+
+    loadData();
+    loadCounter();
+  </script>
+</body>
+</html>
