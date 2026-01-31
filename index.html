@@ -4,338 +4,780 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Buscador de Escuelas Estatales y Privadas - Docentes Brown</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f3efdc;
-      color: #24496e;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-    header {
-      background-color: #24496e;
-      color: white;
-      padding: 1rem;
-      border-bottom: 5px solid #da6863;
-    }
-    h1 { margin: 0; }
-    h2 { font-size: 1rem; margin-top: 0.5rem; color: #f3efdc; }
-    h2 a { color: #da6863; text-decoration: none; font-weight: bold; }
-    .filters { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin: 1rem; }
-    select { padding: 0.5rem; border-radius: 8px; border: 1px solid #3d8fb0; width: 90%; max-width: 400px; }
-    .results { display: flex; flex-direction: column; align-items: center; margin: 1rem; }
-    .card { background-color: white; border: 2px solid #3d8fb0; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 1rem; margin: 0.5rem; width: 90%; max-width: 600px; text-align: left; }
-    
-    /* Botones */
-    .btn { display: inline-block; background-color: #da6863; color: white; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 0.5rem; margin-right: 0.5rem; }
-    .btn:hover { opacity: 0.9; }
-    
-    /* Estilo específico para WhatsApp */
-    .btn.whatsapp { background-color: #25D366; } 
-    .btn.whatsapp:hover { background-color: #128C7E; }
 
-    footer { background-color: #4d3069; color: white; padding: 1rem; margin-top: 1rem; }
-    #contador { font-weight: bold; color: #f3efdc; }
-    
-    .hidden { display: none; }
+  <!-- UI/UX refresh (sin tocar la lógica): solo estilos + estructura -->
+  <style>
+    :root{
+      --ink:#24496e;
+      --ink-2:#1c3a57;
+      --brand-2:#4d3069;
+      --brand-3:#3d8fb0;
+      --paper:#f3efdc;
+      --accent:#da6863;
+      --card:#ffffff;
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
+      --shadow-soft: 0 6px 16px rgba(0,0,0,.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --ring: 0 0 0 4px rgba(61,143,176,.18);
+      --max: 980px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--ink);
+      background:
+        radial-gradient(1000px 600px at 10% 0%, rgba(61,143,176,.22), transparent 55%),
+        radial-gradient(900px 700px at 90% 10%, rgba(77,48,105,.18), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, var(--paper) 55%, #fff 120%);
+    }
+
+    a{ color: inherit; }
+    .page{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* Header */
+    header{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--brand-2) 100%);
+      color:#fff;
+      border-bottom: 4px solid rgba(218,104,99,.85);
+      box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      backdrop-filter: saturate(140%) blur(6px);
+    }
+    .header-inner{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 18px 16px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .brand-row{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .title-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+    h1{
+      margin:0;
+      font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+      line-height:1.15;
+      letter-spacing:.2px;
+    }
+    .subtitle{
+      margin:0;
+      font-size: .92rem;
+      color: rgba(243,239,220,.95);
+    }
+    .subtitle a{
+      color: #ffd7d2;
+      text-decoration:none;
+      font-weight:800;
+      border-bottom: 1px dashed rgba(255,215,210,.65);
+    }
+    .subtitle a:hover{ opacity:.95; }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.92);
+      font-size:.85rem;
+      white-space:nowrap;
+      flex: 0 0 auto;
+    }
+
+    /* Layout */
+    main{
+      width:100%;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 18px 16px 28px;
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .panel{
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(36,73,110,.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      overflow:hidden;
+    }
+    .panel-head{
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background: linear-gradient(180deg, rgba(61,143,176,.16), rgba(255,255,255,0));
+      border-bottom: 1px solid rgba(36,73,110,.08);
+    }
+    .panel-title{
+      margin:0;
+      font-weight:800;
+      letter-spacing:.2px;
+      font-size: .95rem;
+      color: var(--ink-2);
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .panel-title .dot{
+      width:10px;height:10px;border-radius:50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(218,104,99,.18);
+      flex:0 0 auto;
+    }
+    .hint{
+      margin:0;
+      color: rgba(36,73,110,.78);
+      font-size: .85rem;
+    }
+
+    /* Filters */
+    .filters{
+      padding: 14px 16px 16px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    label{
+      font-size:.82rem;
+      font-weight:800;
+      color: rgba(36,73,110,.9);
+      letter-spacing:.15px;
+    }
+
+    select{
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+
+      width:100%;
+      padding: 12px 44px 12px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(61,143,176,.55);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80)),
+        radial-gradient(12px 12px at 94% 52%, rgba(218,104,99,.20), transparent 55%);
+      color: var(--ink-2);
+      font-size: 1rem;
+      box-shadow: 0 1px 0 rgba(255,255,255,.75) inset;
+      outline:none;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    select:focus{
+      border-color: rgba(61,143,176,.9);
+      box-shadow: var(--ring);
+      transform: translateY(-1px);
+    }
+    .select-wrap{
+      position:relative;
+    }
+    .select-wrap:after{
+      content:"▾";
+      position:absolute;
+      right:12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(36,73,110,.70);
+      pointer-events:none;
+      font-size: 1.05rem;
+    }
+
+    .hidden{ display:none !important; }
+
+    /* Results */
+    .results{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding: 0;
+      margin:0;
+    }
+
+    .empty{
+      padding: 18px 16px;
+      color: rgba(36,73,110,.80);
+      font-size: .95rem;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(61,143,176,.35);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 14px 12px;
+      text-align:left;
+      overflow:hidden;
+    }
+    .card-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 8px;
+    }
+    .school-name{
+      margin:0;
+      font-weight:900;
+      font-size: 1.05rem;
+      letter-spacing:.2px;
+      color: var(--ink-2);
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight:800;
+      background: rgba(61,143,176,.12);
+      border: 1px solid rgba(61,143,176,.28);
+      color: var(--ink);
+      flex: 0 0 auto;
+      max-width: 50%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 8px 12px;
+    }
+    .kv{
+      display:flex;
+      gap:8px;
+      line-height:1.25;
+      font-size: .94rem;
+      color: rgba(36,73,110,.96);
+    }
+    .k{
+      min-width: 128px;
+      font-weight:900;
+      color: rgba(36,73,110,.92);
+    }
+    .v{
+      color: rgba(36,73,110,.88);
+      overflow-wrap:anywhere;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top: 12px;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding: 11px 14px;
+      border-radius: 14px;
+      text-decoration:none;
+      font-weight:900;
+      border: 1px solid rgba(0,0,0,.04);
+      box-shadow: 0 8px 18px rgba(218,104,99,.18);
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn:hover{ opacity:.96; }
+
+    .btn.primary{
+      background: linear-gradient(135deg, var(--accent) 0%, #ef7d72 100%);
+      color: #fff;
+    }
+    .btn.ghost{
+      background: rgba(36,73,110,.06);
+      color: var(--ink-2);
+      border: 1px solid rgba(36,73,110,.14);
+      box-shadow: none;
+    }
+    .btn.whatsapp{
+      background: linear-gradient(135deg, #25D366 0%, #18b755 100%);
+      color:#fff;
+      box-shadow: 0 8px 18px rgba(37,211,102,.18);
+    }
+
+    /* Footer */
+    footer{
+      margin-top:auto;
+      background: linear-gradient(135deg, rgba(77,48,105,.96) 0%, rgba(36,73,110,.96) 100%);
+      color: #fff;
+      padding: 16px;
+      box-shadow: 0 -8px 22px rgba(0,0,0,.10);
+    }
+    .footer-inner{
+      max-width: var(--max);
+      margin: 0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:flex-start;
+    }
+    #contador{
+      margin:0;
+      font-weight:900;
+      color: rgba(243,239,220,.96);
+    }
+    .footer-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .footer-actions .btn{ box-shadow: 0 10px 22px rgba(0,0,0,.18); }
+
+    /* Responsive */
+    @media (min-width: 720px){
+      .header-inner{ padding: 20px 16px 16px; }
+      .filters{ grid-template-columns: repeat(2, 1fr); }
+      .grid{ grid-template-columns: repeat(2, 1fr); }
+      .k{ min-width: 140px; }
+    }
+    @media (min-width: 980px){
+      .filters{ grid-template-columns: repeat(3, 1fr); }
+      .grid{ grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; scroll-behavior:auto !important; }
+    }
   </style>
 </head>
+
 <body>
+<div class="page">
   <header>
-    <h1>Buscador de Escuelas</h1>
-    <h2>Optimizado por <a href="https://www.instagram.com/docentesbrown" target="_blank">@docentesbrown</a>, ahora también con escuelas privadas.</h2>
-    <h2>Si te sirvió este buscador invitanos un cafecito, tu aporte nos acompaña para seguir creciendo.</h2>
+    <div class="header-inner">
+      <div class="brand-row">
+        <div class="title-wrap">
+          <h1>Buscador de Escuelas</h1>
+          <p class="subtitle">
+            Optimizado por <a href="https://www.instagram.com/docentesbrown" target="_blank" rel="noreferrer">@docentesbrown</a>, ahora también con escuelas privadas.
+          </p>
+        </div>
+        <div class="pill" aria-label="Tip de uso">
+          ✨ Elegí filtros de arriba hacia abajo
+        </div>
+      </div>
+      <p class="subtitle" style="margin:0; opacity:.95">
+        Si te sirvió este buscador, invitanos un cafecito ☕ Tu aporte nos acompaña para seguir creciendo.
+      </p>
+    </div>
   </header>
 
-  <section class="filters">
-    <select id="gestionFilter"><option value="">Seleccionar Gestión</option></select>
-    <select id="regionFilter"><option value="">Seleccionar Región</option></select>
-    <select id="distritoFilter"><option value="">Seleccionar Distrito</option></select>
-    <select id="nivelFilter"><option value="">Seleccionar Nivel</option></select>
-    <select id="modalidadFilter"><option value="">Seleccionar Modalidad</option></select>
-    
-    <select id="numeroFilter"><option value="">Seleccionar Nº de Escuela</option></select>
-    <select id="nombreFilter" class="hidden"><option value="">Seleccionar Nombre de Escuela</option></select>
-  </section>
+  <main>
+    <section class="panel" aria-label="Filtros de búsqueda">
+      <div class="panel-head">
+        <h3 class="panel-title"><span class="dot" aria-hidden="true"></span>Filtros</h3>
+        <p class="hint">Los resultados aparecen cuando completás el último filtro.</p>
+      </div>
 
-  <section class="results" id="results"></section>
+      <!-- Importante: se mantienen IDs y estructura lógica -->
+      <div class="filters">
+        <div class="field">
+          <label for="gestionFilter">Gestión</label>
+          <div class="select-wrap">
+            <select id="gestionFilter"><option value="">Seleccionar Gestión</option></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="regionFilter">Región Educativa</label>
+          <div class="select-wrap">
+            <select id="regionFilter"><option value="">Seleccionar Región</option></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="distritoFilter">Distrito</label>
+          <div class="select-wrap">
+            <select id="distritoFilter"><option value="">Seleccionar Distrito</option></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="nivelFilter">Nivel</label>
+          <div class="select-wrap">
+            <select id="nivelFilter"><option value="">Seleccionar Nivel</option></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="modalidadFilter">Modalidad</label>
+          <div class="select-wrap">
+            <select id="modalidadFilter"><option value="">Seleccionar Modalidad</option></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="numeroFilter">Nº de Escuela</label>
+          <div class="select-wrap">
+            <select id="numeroFilter"><option value="">Seleccionar Nº de Escuela</option></select>
+          </div>
+        </div>
+
+        <div class="field hidden" id="nombreField">
+          <label for="nombreFilter">Nombre de Escuela</label>
+          <div class="select-wrap">
+            <select id="nombreFilter" class="hidden"><option value="">Seleccionar Nombre de Escuela</option></select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Resultados">
+      <div class="panel-head">
+        <h3 class="panel-title"><span class="dot" aria-hidden="true" style="background: var(--brand-3); box-shadow: 0 0 0 6px rgba(61,143,176,.16);"></span>Resultados</h3>
+        <p class="hint">Tip: tocá “📍 Ubicación” para abrir Maps.</p>
+      </div>
+
+      <section class="results" id="results">
+        <div class="empty">Cargando datos…</div>
+      </section>
+    </section>
+  </main>
 
   <footer>
-    <p id="contador">Cargando visitas...</p>
-    <a class="btn" href="https://cafecito.app/docentesbrown" target="_blank">☕ Doná un Cafecito</a>
+    <div class="footer-inner">
+      <p id="contador">Cargando visitas...</p>
+      <div class="footer-actions">
+        <a class="btn primary" href="https://cafecito.app/docentesbrown" target="_blank" rel="noreferrer">☕ Doná un Cafecito</a>
+      </div>
+    </div>
   </footer>
+</div>
 
-  <script>
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTxk9mBO2U4JKTaj4iLtYGzw4KWh7GNxfAqfOIj_Dgc1ciDLb7MKGDfnkvfmuFwOg/pub?gid=1973952134&single=true&output=csv';
-    let allData = []; 
+<script>
+  const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTxk9mBO2U4JKTaj4iLtYGzw4KWh7GNxfAqfOIj_Dgc1ciDLb7MKGDfnkvfmuFwOg/pub?gid=1973952134&single=true&output=csv';
+  let allData = [];
 
-    function parseCSV(text) {
-      const rows = [];
-      const lines = text.trim().split(/\r?\n/).filter(line => line.length > 0); 
+  function parseCSV(text) {
+    const rows = [];
+    const lines = text.trim().split(/\r?\n/).filter(line => line.length > 0);
 
-      for (const line of lines) {
-        const rowData = [];
-        let currentField = '';
-        let inQuotes = false;
+    for (const line of lines) {
+      const rowData = [];
+      let currentField = '';
+      let inQuotes = false;
 
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
 
-          if (char === '"') {
-            if (inQuotes && line[i + 1] === '"') {
-              currentField += '"';
-              i++; 
-            } else {
-              inQuotes = !inQuotes;
-            }
-          } else if (char === ',' && !inQuotes) {
-            rowData.push(currentField);
-            currentField = '';
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            currentField += '"';
+            i++;
           } else {
-            currentField += char;
+            inQuotes = !inQuotes;
           }
-        }
-        rowData.push(currentField); 
-        
-        rows.push(rowData.map(field => field.trim().replace(/^"|"$/g, '')));
-      }
-      return rows;
-    }
-
-    async function loadData() {
-      try {
-        const response = await fetch(sheetUrl);
-        const csvText = await response.text();
-        
-        const rows = parseCSV(csvText); 
-        
-        if (rows.length === 0) {
-            document.getElementById('results').innerHTML = `<p style='color:orange'>El archivo de datos está vacío o es inaccesible.</p>`;
-            return;
-        }
-
-        const headers = rows[0].map(h => 
-          h.trim().toLowerCase().replace(/ /g, '_').replace(/[^a-z0-9_]/g, '') 
-        );
-
-        allData = rows.slice(1).map(row => {
-            const dataObject = {};
-            headers.forEach((h, i) => {
-                dataObject[h] = row[i] || '';
-            });
-            return dataObject;
-        });
-
-        populateFilters(allData);
-        setupFilterListeners(allData);
-      } catch (error) {
-        document.getElementById('results').innerHTML = `<p style='color:red'>Error cargando datos: ${error.message}. Verifica la URL del Google Sheet.</p>`;
-      }
-    }
-
-    function populateFilters(data) {
-      const gestiones = [...new Set(data.map(d => d.gestion).filter(Boolean))].sort();
-      fillSelect('gestionFilter', gestiones);
-    }
-
-    function fillSelect(id, options) {
-      const select = document.getElementById(id);
-      const defaultText = select.options[0] ? select.options[0].text : "Seleccionar";
-      select.innerHTML = ''; 
-      
-      const defaultOption = document.createElement('option');
-      defaultOption.value = "";
-      defaultOption.text = defaultText;
-      select.appendChild(defaultOption);
-      
-      options.forEach(o => {
-        const option = document.createElement('option');
-        option.value = o;
-        option.textContent = o;
-        select.appendChild(option);
-      });
-    }
-
-    function setupFilterListeners(data) {
-      const gestion = document.getElementById('gestionFilter');
-      const region = document.getElementById('regionFilter');
-      const distrito = document.getElementById('distritoFilter');
-      const nivel = document.getElementById('nivelFilter');
-      const modalidad = document.getElementById('modalidadFilter');
-      const numero = document.getElementById('numeroFilter');
-      const nombre = document.getElementById('nombreFilter');
-
-      function updateFilters(nextFiltersToUpdate) {
-        let filtered = data;
-        
-        const gestionVal = gestion.value;
-        const regionVal = region.value;
-        const distritoVal = distrito.value;
-        const nivelVal = nivel.value;
-        const modalidadVal = modalidad.value;
-        const numeroVal = numero.value;
-        const nombreVal = nombre.value;
-
-        const esPrivada = gestionVal && gestionVal.toLowerCase().includes('privada');
-        
-        if (esPrivada) {
-            numero.classList.add('hidden');
-            nombre.classList.remove('hidden');
+        } else if (char === ',' && !inQuotes) {
+          rowData.push(currentField);
+          currentField = '';
         } else {
-            numero.classList.remove('hidden');
-            nombre.classList.add('hidden');
-        }
-
-        if (gestionVal) filtered = filtered.filter(d => d.gestion === gestionVal);
-        if (regionVal) filtered = filtered.filter(d => d.region_educativa === regionVal);
-        if (distritoVal) filtered = filtered.filter(d => d.distrito === distritoVal);
-        if (nivelVal) filtered = filtered.filter(d => d.nivel === nivelVal);
-        if (modalidadVal) filtered = filtered.filter(d => d.modalidad === modalidadVal);
-        
-        const dataForLastSelect = filtered;
-
-        if (esPrivada) {
-            if (nombreVal) filtered = filtered.filter(d => d.nombre === nombreVal);
-        } else {
-            if (numeroVal) filtered = filtered.filter(d => d.nro_escuela === numeroVal);
-        }
-
-        if (nextFiltersToUpdate.includes('regionFilter')) {
-          fillSelect('regionFilter', [...new Set(filtered.map(d => d.region_educativa).filter(Boolean))].sort());
-        }
-        if (nextFiltersToUpdate.includes('distritoFilter')) {
-          fillSelect('distritoFilter', [...new Set(filtered.map(d => d.distrito).filter(Boolean))].sort());
-        }
-        if (nextFiltersToUpdate.includes('nivelFilter')) {
-          fillSelect('nivelFilter', [...new Set(filtered.map(d => d.nivel).filter(Boolean))].sort());
-        }
-        if (nextFiltersToUpdate.includes('modalidadFilter')) {
-          fillSelect('modalidadFilter', [...new Set(filtered.map(d => d.modalidad).filter(Boolean))].sort());
-        }
-        
-        if (nextFiltersToUpdate.includes('ultimoFiltro')) {
-            if (esPrivada) {
-                fillSelect('nombreFilter', [...new Set(dataForLastSelect.map(d => d.nombre).filter(Boolean))].sort());
-                if (nombreVal) nombre.value = nombreVal;
-                numero.value = ''; 
-            } else {
-                fillSelect('numeroFilter', [...new Set(dataForLastSelect.map(d => d.nro_escuela).filter(Boolean))].sort());
-                if (numeroVal) numero.value = numeroVal;
-                nombre.value = '';
-            }
-        }
-
-        const container = document.getElementById('results');
-        container.innerHTML = '';
-
-        if (modalidadVal || (esPrivada && nombreVal) || (!esPrivada && numeroVal)) {
-             displayResults(filtered);
+          currentField += char;
         }
       }
+      rowData.push(currentField);
 
-      gestion.addEventListener('change', () => {
-         region.value = ''; distrito.value = ''; nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
-         updateFilters(['regionFilter', 'distritoFilter', 'nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
-      });
-
-      region.addEventListener('change', () => {
-         distrito.value = ''; nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
-         updateFilters(['distritoFilter', 'nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
-      });
-
-      distrito.addEventListener('change', () => {
-         nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
-         updateFilters(['nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
-      });
-
-      nivel.addEventListener('change', () => {
-         modalidad.value = ''; numero.value = ''; nombre.value = '';
-         updateFilters(['modalidadFilter', 'ultimoFiltro']);
-      });
-
-      modalidad.addEventListener('change', () => {
-         numero.value = ''; nombre.value = '';
-         updateFilters(['ultimoFiltro']);
-      });
-
-      numero.addEventListener('change', () => {
-         updateFilters([]); 
-      });
-
-      nombre.addEventListener('change', () => {
-         updateFilters([]); 
-      });
+      rows.push(rowData.map(field => field.trim().replace(/^"|"$/g, '')));
     }
+    return rows;
+  }
 
-    function displayResults(filtered) {
-      const container = document.getElementById('results');
-      
-      if (filtered.length === 0) {
-        container.innerHTML = '<p>No se encontraron resultados para esta combinación.</p>';
+  async function loadData() {
+    try {
+      const response = await fetch(sheetUrl);
+      const csvText = await response.text();
+
+      const rows = parseCSV(csvText);
+
+      if (rows.length === 0) {
+        document.getElementById('results').innerHTML =
+          `<div class="empty" style="color: #b45309;">El archivo de datos está vacío o es inaccesible.</div>`;
         return;
       }
 
-      // TU NÚMERO DE WHATSAPP ACTUALIZADO
-      const tuNumeroDeWhatsapp = "5491153196358"; 
+      const headers = rows[0].map(h =>
+        h.trim().toLowerCase().replace(/ /g, '_').replace(/[^a-z0-9_]/g, '')
+      );
 
-      filtered.forEach(d => {
-        let query = '';
-
-        if (d.latitud && d.longitud && d.latitud !== '' && d.longitud !== '') {
-          query = `${d.latitud},${d.longitud}`;
-        } else {
-          query = `Escuela ${d.nro_escuela || ''} ${d.distrito || ''} ${d.calle || ''} ${d.nro_calle || ''}`;
-        }
-        
-        const loc = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-        
-        // Creamos el mensaje predeterminado para WhatsApp
-        const nombreEscuela = d.nombre || `Escuela ${d.nro_escuela}`;
-        const textoWhatsapp = `Hola Docentes Brown, vi la ${nombreEscuela} en el buscador y quería hacerles una consulta.`;
-        const linkWhatsapp = `https://wa.me/${tuNumeroDeWhatsapp}?text=${encodeURIComponent(textoWhatsapp)}`;
-        
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <strong>${d.nombre || 'Nombre no disponible'}</strong><br>
-          Gestión: ${d.gestion || ''}<br>
-          Región: ${d.region_educativa || ''}<br>
-          Distrito: ${d.distrito || ''}<br>
-          Clave: ${d.clave || ''}<br>
-          Nivel: ${d.nivel || ''}<br>
-          Modalidad: ${d.modalidad || ''}<br>
-          Nº Escuela: ${d.nro_escuela || ''}<br>
-          Calle: ${d.calle || ''} ${d.nro_calle || ''}<br>
-          Entre: ${d.calle_lateral_derecha || ''} y ${d.calle_lateral_izquierda || ''}<br>
-          Localidad: ${d.localidad || ''}<br>
-          Tel: (${d.caracteristica_telefonica || ''}) ${d.nro_telefono || ''}<br>
-          Email: ${d.email || ''}<br>
-          Tipo: ${d.tipo_organizacion || ''}<br>
-          Desfavorabilidad: ${d.desfavorabilidad || ''}<br>
-          <div style="margin-top:10px;">
-            <a class='btn' href='${loc}' target='_blank'>📍 Ubicación</a>
-            <a class='btn whatsapp' href='${linkWhatsapp}' target='_blank'>💬 WhatsApp a DB</a>
-          </div>
-        `;
-        container.appendChild(card);
+      allData = rows.slice(1).map(row => {
+        const dataObject = {};
+        headers.forEach((h, i) => {
+          dataObject[h] = row[i] || '';
+        });
+        return dataObject;
       });
+
+      populateFilters(allData);
+      setupFilterListeners(allData);
+
+      // UI: limpiar placeholder de carga (sin cambiar lógica)
+      const container = document.getElementById('results');
+      container.innerHTML = `<div class="empty">Elegí los filtros para ver resultados.</div>`;
+    } catch (error) {
+      document.getElementById('results').innerHTML =
+        `<div class="empty" style="color:#b91c1c;">Error cargando datos: ${error.message}. Verificá la URL del Google Sheet.</div>`;
     }
+  }
 
-    async function loadCounter() {
-      const url = 'https://script.google.com/macros/s/AKfycbyKykDszLonwKbCOozT3cgbctSayhhWR2T3vDf5ncMX296E-p6EytJuvWWPr6MO6xhg/exec';
+  function populateFilters(data) {
+    const gestiones = [...new Set(data.map(d => d.gestion).filter(Boolean))].sort();
+    fillSelect('gestionFilter', gestiones);
+  }
 
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        const visitas = await res.text();
-        document.getElementById('contador').innerText = `Visitantes totales: ${visitas}`;
-      } catch {
-        document.getElementById('contador').innerText = 'Visitantes totales: -';
+  function fillSelect(id, options) {
+    const select = document.getElementById(id);
+    const defaultText = select.options[0] ? select.options[0].text : "Seleccionar";
+    select.innerHTML = '';
+
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.text = defaultText;
+    select.appendChild(defaultOption);
+
+    options.forEach(o => {
+      const option = document.createElement('option');
+      option.value = o;
+      option.textContent = o;
+      select.appendChild(option);
+    });
+  }
+
+  function setupFilterListeners(data) {
+    const gestion = document.getElementById('gestionFilter');
+    const region = document.getElementById('regionFilter');
+    const distrito = document.getElementById('distritoFilter');
+    const nivel = document.getElementById('nivelFilter');
+    const modalidad = document.getElementById('modalidadFilter');
+    const numero = document.getElementById('numeroFilter');
+    const nombre = document.getElementById('nombreFilter');
+
+    // Ajuste visual: cuando ocultamos/mostramos, también el contenedor del label
+    const nombreField = document.getElementById('nombreField');
+
+    function updateFilters(nextFiltersToUpdate) {
+      let filtered = data;
+
+      const gestionVal = gestion.value;
+      const regionVal = region.value;
+      const distritoVal = distrito.value;
+      const nivelVal = nivel.value;
+      const modalidadVal = modalidad.value;
+      const numeroVal = numero.value;
+      const nombreVal = nombre.value;
+
+      const esPrivada = gestionVal && gestionVal.toLowerCase().includes('privada');
+
+      if (esPrivada) {
+        numero.classList.add('hidden');
+        nombre.classList.remove('hidden');
+        if (nombreField) nombreField.classList.remove('hidden');
+      } else {
+        numero.classList.remove('hidden');
+        nombre.classList.add('hidden');
+        if (nombreField) nombreField.classList.add('hidden');
+      }
+
+      if (gestionVal) filtered = filtered.filter(d => d.gestion === gestionVal);
+      if (regionVal) filtered = filtered.filter(d => d.region_educativa === regionVal);
+      if (distritoVal) filtered = filtered.filter(d => d.distrito === distritoVal);
+      if (nivelVal) filtered = filtered.filter(d => d.nivel === nivelVal);
+      if (modalidadVal) filtered = filtered.filter(d => d.modalidad === modalidadVal);
+
+      const dataForLastSelect = filtered;
+
+      if (esPrivada) {
+        if (nombreVal) filtered = filtered.filter(d => d.nombre === nombreVal);
+      } else {
+        if (numeroVal) filtered = filtered.filter(d => d.nro_escuela === numeroVal);
+      }
+
+      if (nextFiltersToUpdate.includes('regionFilter')) {
+        fillSelect('regionFilter', [...new Set(filtered.map(d => d.region_educativa).filter(Boolean))].sort());
+      }
+      if (nextFiltersToUpdate.includes('distritoFilter')) {
+        fillSelect('distritoFilter', [...new Set(filtered.map(d => d.distrito).filter(Boolean))].sort());
+      }
+      if (nextFiltersToUpdate.includes('nivelFilter')) {
+        fillSelect('nivelFilter', [...new Set(filtered.map(d => d.nivel).filter(Boolean))].sort());
+      }
+      if (nextFiltersToUpdate.includes('modalidadFilter')) {
+        fillSelect('modalidadFilter', [...new Set(filtered.map(d => d.modalidad).filter(Boolean))].sort());
+      }
+
+      if (nextFiltersToUpdate.includes('ultimoFiltro')) {
+        if (esPrivada) {
+          fillSelect('nombreFilter', [...new Set(dataForLastSelect.map(d => d.nombre).filter(Boolean))].sort());
+          if (nombreVal) nombre.value = nombreVal;
+          numero.value = '';
+        } else {
+          fillSelect('numeroFilter', [...new Set(dataForLastSelect.map(d => d.nro_escuela).filter(Boolean))].sort());
+          if (numeroVal) numero.value = numeroVal;
+          nombre.value = '';
+        }
+      }
+
+      const container = document.getElementById('results');
+      container.innerHTML = '';
+
+      if (modalidadVal || (esPrivada && nombreVal) || (!esPrivada && numeroVal)) {
+        displayResults(filtered);
+      } else {
+        container.innerHTML = `<div class="empty">Elegí los filtros para ver resultados.</div>`;
       }
     }
 
-    loadData();
-    loadCounter();
-  </script>
+    gestion.addEventListener('change', () => {
+      region.value = ''; distrito.value = ''; nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
+      updateFilters(['regionFilter', 'distritoFilter', 'nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
+    });
+
+    region.addEventListener('change', () => {
+      distrito.value = ''; nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
+      updateFilters(['distritoFilter', 'nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
+    });
+
+    distrito.addEventListener('change', () => {
+      nivel.value = ''; modalidad.value = ''; numero.value = ''; nombre.value = '';
+      updateFilters(['nivelFilter', 'modalidadFilter', 'ultimoFiltro']);
+    });
+
+    nivel.addEventListener('change', () => {
+      modalidad.value = ''; numero.value = ''; nombre.value = '';
+      updateFilters(['modalidadFilter', 'ultimoFiltro']);
+    });
+
+    modalidad.addEventListener('change', () => {
+      numero.value = ''; nombre.value = '';
+      updateFilters(['ultimoFiltro']);
+    });
+
+    numero.addEventListener('change', () => {
+      updateFilters([]);
+    });
+
+    nombre.addEventListener('change', () => {
+      updateFilters([]);
+    });
+  }
+
+  function displayResults(filtered) {
+    const container = document.getElementById('results');
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty">No se encontraron resultados para esta combinación.</div>';
+      return;
+    }
+
+    const tuNumeroDeWhatsapp = "5491153196358";
+
+    filtered.forEach(d => {
+      let query = '';
+
+      if (d.latitud && d.longitud && d.latitud !== '' && d.longitud !== '') {
+        query = `${d.latitud},${d.longitud}`;
+      } else {
+        query = `Escuela ${d.nro_escuela || ''} ${d.distrito || ''} ${d.calle || ''} ${d.nro_calle || ''}`;
+      }
+
+      const loc = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+
+      const nombreEscuela = d.nombre || `Escuela ${d.nro_escuela}`;
+      const textoWhatsapp = `Hola Docentes Brown, vi la ${nombreEscuela} en el buscador y quería hacerles una consulta.`;
+      const linkWhatsapp = `https://wa.me/${tuNumeroDeWhatsapp}?text=${encodeURIComponent(textoWhatsapp)}`;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      // Badge corto y estético
+      const badgeText = (d.gestion || '').trim() || 'Gestión';
+
+      card.innerHTML = `
+        <div class="card-top">
+          <h4 class="school-name">${d.nombre || 'Nombre no disponible'}</h4>
+          <div class="badge" title="${badgeText}">🏷️ ${badgeText}</div>
+        </div>
+
+        <div class="grid">
+          <div class="kv"><div class="k">Región</div><div class="v">${d.region_educativa || '-'}</div></div>
+          <div class="kv"><div class="k">Distrito</div><div class="v">${d.distrito || '-'}</div></div>
+          <div class="kv"><div class="k">Clave</div><div class="v">${d.clave || '-'}</div></div>
+
+          <div class="kv"><div class="k">Nivel</div><div class="v">${d.nivel || '-'}</div></div>
+          <div class="kv"><div class="k">Modalidad</div><div class="v">${d.modalidad || '-'}</div></div>
+          <div class="kv"><div class="k">Nº Escuela</div><div class="v">${d.nro_escuela || '-'}</div></div>
+
+          <div class="kv"><div class="k">Dirección</div><div class="v">${(d.calle || '-') + ' ' + (d.nro_calle || '')}</div></div>
+          <div class="kv"><div class="k">Entre</div><div class="v">${(d.calle_lateral_derecha || '-') + ' y ' + (d.calle_lateral_izquierda || '-')}</div></div>
+          <div class="kv"><div class="k">Localidad</div><div class="v">${d.localidad || '-'}</div></div>
+
+          <div class="kv"><div class="k">Tel</div><div class="v">(${d.caracteristica_telefonica || ''}) ${d.nro_telefono || '-'}</div></div>
+          <div class="kv"><div class="k">Email</div><div class="v">${d.email || '-'}</div></div>
+          <div class="kv"><div class="k">Tipo</div><div class="v">${d.tipo_organizacion || '-'}</div></div>
+
+          <div class="kv"><div class="k">Desfav.</div><div class="v">${d.desfavorabilidad || '-'}</div></div>
+        </div>
+
+        <div class="actions">
+          <a class="btn primary" href="${loc}" target="_blank" rel="noreferrer">📍 Ubicación</a>
+          <a class="btn whatsapp" href="${linkWhatsapp}" target="_blank" rel="noreferrer">💬 WhatsApp a DB</a>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  async function loadCounter() {
+    const url = 'https://script.google.com/macros/s/AKfycbyKykDszLonwKbCOozT3cgbctSayhhWR2T3vDf5ncMX296E-p6EytJuvWWPr6MO6xhg/exec';
+
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      const visitas = await res.text();
+      document.getElementById('contador').innerText = `Visitantes totales: ${visitas}`;
+    } catch {
+      document.getElementById('contador').innerText = 'Visitantes totales: -';
+    }
+  }
+
+  loadData();
+  loadCounter();
+</script>
 </body>
 </html>
