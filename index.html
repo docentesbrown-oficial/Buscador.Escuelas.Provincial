@@ -719,8 +719,29 @@
 
       const loc = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 
-      const nombreEscuela = d.nombre || `Escuela ${d.nro_escuela}`;
-      const textoWhatsapp = `Hola Docentes Brown, vi la ${nombreEscuela} en el buscador y quería hacerles una consulta.`;
+      // El mensaje se completa con los datos de la escuela elegida.
+      // Se incluyen siempre la localidad y el distrito para identificarla correctamente.
+      const nombreEscuela = d.nombre || (d.nro_escuela ? `Escuela Nº ${d.nro_escuela}` : 'Sin nombre informado');
+      const datosEscuela = [
+        `🏫 Escuela: ${nombreEscuela}`,
+        d.nro_escuela ? `🔢 Nº de escuela: ${d.nro_escuela}` : null,
+        d.gestion ? `🏷️ Gestión: ${d.gestion}` : null,
+        `📍 Localidad: ${d.localidad || 'No informada'}`,
+        `🗺️ Distrito: ${d.distrito || 'No informado'}`,
+        d.region_educativa ? `🏢 Región educativa: ${d.region_educativa}` : null,
+        d.nivel ? `🎓 Nivel: ${d.nivel}` : null,
+        d.modalidad ? `📚 Modalidad: ${d.modalidad}` : null,
+        d.clave ? `🔑 Clave: ${d.clave}` : null,
+        d.calle ? `📌 Dirección: ${d.calle}${d.nro_calle ? ' ' + d.nro_calle : ''}` : null
+      ].filter(Boolean).join('\n');
+
+      const textoWhatsapp = [
+        'Hola, Docentes Brown. Encontré esta institución en el Buscador de Escuelas y quería hacerles una consulta:',
+        '',
+        datosEscuela,
+        '',
+        'Mi consulta: '
+      ].join('\n');
       const linkWhatsapp = `https://wa.me/${tuNumeroDeWhatsapp}?text=${encodeURIComponent(textoWhatsapp)}`;
 
       const card = document.createElement('div');
